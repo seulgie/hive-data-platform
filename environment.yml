@@ -1,0 +1,19 @@
+name: hive
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pandas
+  - geopandas
+  - pyogrio
+  - rasterio
+  - rioxarray
+  - pyarrow
+  - pydantic>=2
+  - requests
+  - python-dotenv
+  - duckdb
+  - pytest
+  - ruff
+  - ipykernel
+  - pip

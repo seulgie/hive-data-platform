@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Env / secrets
+.env
+
+# Data
+data/raw/*
+data/lake/*
+!data/raw/.gitkeep
+!data/lake/.gitkeep
+
+# IDE / OS
+.vscode/
+.ipynb_checkpoints/
+Thumbs.db
+.DS_Store
