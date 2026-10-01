@@ -17,3 +17,5 @@ dependencies:
   - ruff
   - ipykernel
   - pip
+  - matplotlib
+  
