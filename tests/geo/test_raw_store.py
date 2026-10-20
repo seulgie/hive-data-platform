@@ -71,3 +71,19 @@ def test_load_raw_tiles_keeps_source_tile_id(tmp_path):
 def test_load_raw_tiles_fails_on_empty_cache(tmp_path):
     with pytest.raises(DataQualityError, match="no parcels"):
         raw_store.load_raw_tiles(tmp_path)
+
+def test_tile_cache_is_not_shared_between_tile_sizes(tmp_path):
+    # tile_id N means a different box for each tile size: the cache must not mix them
+    communes, parcels = fake_world()
+    small = GeoIngestConfig(tile_size_m=3000, page_size=50, request_pause_s=0, raw_root=tmp_path)
+    large = GeoIngestConfig(tile_size_m=5000, page_size=50, request_pause_s=0, raw_root=tmp_path)
+
+    raw_store.cache_tiles(FakeSession(communes, parcels),
+                          spatial.make_tiles(DEPT_L93, small.tile_size_m), small, RunStats())
+    stats = RunStats()
+    raw_store.cache_tiles(FakeSession(communes, parcels),
+                          spatial.make_tiles(DEPT_L93, large.tile_size_m), large, stats)
+
+    assert stats.tiles_from_cache == 0
+    assert stats.tiles_fetched_now == stats.tiles_total
+    

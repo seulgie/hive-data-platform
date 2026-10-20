@@ -31,7 +31,10 @@ class GeoIngestConfig:
 
     @property
     def tiles_raw_dir(self) -> Path:
-        return self.raw_root / "rpg" / f"rpg_year={self.rpg_year}" / f"dept_code={self.dept_code}"
+        # Every input that changes a tile's content must be part of the cache key:
+        # tile_0005 is a different box for each tile size.
+        return (self.raw_root / "rpg" / f"rpg_year={self.rpg_year}"
+                / f"dept_code={self.dept_code}" / f"tile_size_m={self.tile_size_m}")
 
     @property
     def communes_out_path(self) -> Path:

@@ -60,3 +60,4 @@ def test_assign_department_uses_representative_point():
     flags = dict(zip(out["id_parcel"], out["crosses_dept_boundary"]))
     assert flags == {"inside": False, "mostly_in": True}
     assert stats.outside_dept_dropped == 2
+
