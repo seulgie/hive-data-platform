@@ -58,6 +58,7 @@ class RunStats:
     tiles_from_cache: int = 0
     rows_raw: int = 0
     duplicates_removed: int = 0
+    split_records_merged: int = 0
     invalid_fixed: int = 0
     collections_split: int = 0
     empty_dropped: int = 0

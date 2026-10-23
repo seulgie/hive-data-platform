@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import geopandas as gpd
 import pandas as pd
+import shapely
 
 from .config import CRS_WGS84, DataQualityError, RunStats
 
@@ -27,31 +28,48 @@ def cast_types(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 
 def dedupe_parcels(gdf: gpd.GeoDataFrame, stats: RunStats) -> gpd.GeoDataFrame:
-    """Drop copies of parcels returned by several tiles.
+    """Collapse rows sharing an id_parcel into one row per parcel.
 
-    Invariant (from notebook 02, check 3): all copies must be identical. If the API ever
-    started clipping parcels to the query box, keep-first would silently drop parcel
-    pieces, so we fail instead.
+    Two kinds of duplicates exist in the API responses:
+    - identical copies: a parcel on a tile edge is returned by both tiles -> keep one;
+    - split records: the source stores several geometries for one parcel. First seen on
+      id_parcel 11491338 (one tile, a 6.44 ha body plus a 3 m2 sliver, same attributes)
+      -> the parcel's geometry is the union of all its rows. This also rebuilds a parcel
+      if copies were ever clipped at a tile edge.
+    Attributes must be identical across rows: there is no safe way to choose between
+    conflicting values, so the run fails instead.
     """
     is_dup = gdf["id_parcel"].duplicated(keep=False)
-    if is_dup.any():
-        dups = gdf[is_dup]
-        first = dups.drop_duplicates("id_parcel", keep="first").set_index("id_parcel")
-        later = dups[dups["id_parcel"].duplicated(keep="first")]
-        ref = first.loc[later["id_parcel"]]
-
-        attrs = [c for c in RPG_COLUMNS if c != "id_parcel"]
-        same_attrs = (later[attrs].fillna("<null>").to_numpy()
-                      == ref[attrs].fillna("<null>").to_numpy()).all(axis=1)
-        same_geom = later.geometry.reset_index(drop=True).geom_equals_exact(
-            ref.geometry.reset_index(drop=True), tolerance=1e-7)  # ~1 cm in degrees
-        bad = ~(same_attrs & same_geom.to_numpy())
-        if bad.any():
-            sample = later.loc[bad, "id_parcel"].head(5).tolist()
-            raise DataQualityError(f"{bad.sum()} duplicated parcels differ between tiles, e.g. {sample}")
-
     out = gdf.drop_duplicates("id_parcel", keep="first").reset_index(drop=True)
     stats.duplicates_removed = len(gdf) - len(out)
+    if not is_dup.any():
+        return out
+
+    dups = gdf[is_dup]
+    attrs = [c for c in RPG_COLUMNS if c != "id_parcel"]
+    attr_key = dups[attrs].astype("string").fillna("<null>").agg("|".join, axis=1)
+    conflicting = attr_key.groupby(dups["id_parcel"]).nunique()
+    conflicting = conflicting[conflicting > 1]
+    if len(conflicting):
+        sample = conflicting.index[:5].tolist()
+        raise DataQualityError(
+            f"{len(conflicting)} parcels have rows with different attributes, e.g. {sample}")
+
+    first_geom = dups.drop_duplicates("id_parcel").set_index("id_parcel").geometry
+    ref = gpd.GeoSeries(first_geom.loc[dups["id_parcel"]].to_numpy(), index=dups.index, crs=dups.crs)
+    same_geom = dups.geometry.geom_equals_exact(ref, tolerance=1e-7)  # ~1 cm in degrees
+    to_merge = dups.loc[~same_geom, "id_parcel"].unique()
+
+    if len(to_merge):
+        # make_valid first: union on invalid geometries can raise a GEOS topology error
+        merged = (dups[dups["id_parcel"].isin(to_merge)]
+                  .geometry.make_valid()
+                  .groupby(dups["id_parcel"])
+                  .agg(lambda geoms: shapely.union_all(geoms.to_numpy())))
+        rows = out["id_parcel"].isin(to_merge)
+        out.loc[rows, "geometry"] = gpd.GeoSeries(
+            merged.loc[out.loc[rows, "id_parcel"]].to_numpy(), index=out.index[rows], crs=out.crs)
+    stats.split_records_merged = len(to_merge)
     return out
 
 

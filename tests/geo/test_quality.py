@@ -41,15 +41,42 @@ def test_dedupe_keeps_one_copy_of_identical_duplicates():
 
     assert sorted(out["id_parcel"]) == ["1", "2"]
     assert stats.duplicates_removed == 1
+    assert stats.split_records_merged == 0
 
 
-def test_dedupe_fails_when_copies_differ():
-    # Same id, but the second copy is clipped to half -> keep-first would lose data
-    full = parcel("1", square(500_000, 6_300_000, size=100))
-    clipped = parcel("1", box(500_000, 6_300_000, 500_050, 6_300_100))
-    gdf = quality.cast_types(to_wgs([full, clipped]))
+def test_dedupe_merges_split_record_into_one_parcel():
+    # Real case 11491338: one tile returned the parcel twice, a 6.44 ha body and a 3 m2 sliver
+    body = box(500_000, 6_300_000, 500_100, 6_300_100)
+    sliver = box(500_099, 6_300_050, 500_101, 6_300_052)      # straddles the body's edge
+    gdf = quality.cast_types(to_wgs([parcel("1", sliver), parcel("1", body)]))
+    stats = RunStats()
 
-    with pytest.raises(DataQualityError, match="differ between tiles"):
+    out = quality.dedupe_parcels(gdf, stats)
+
+    assert len(out) == 1
+    merged_area = out.to_crs(CRS_L93).area.iloc[0]
+    assert merged_area == pytest.approx(body.union(sliver).area, rel=1e-6)
+    assert stats.duplicates_removed == 1
+    assert stats.split_records_merged == 1
+
+
+def test_dedupe_rebuilds_parcel_from_clipped_copies():
+    # If the API ever clipped a parcel at a tile edge, the union of the pieces is the full parcel
+    left = parcel("1", box(500_000, 6_300_000, 500_050, 6_300_100))
+    right = parcel("1", box(500_050, 6_300_000, 500_100, 6_300_100))
+    gdf = quality.cast_types(to_wgs([left, right]))
+
+    out = quality.dedupe_parcels(gdf, RunStats())
+
+    assert out.to_crs(CRS_L93).area.iloc[0] == pytest.approx(100 * 100, rel=1e-6)
+
+
+def test_dedupe_fails_when_copies_have_different_attributes():
+    a = parcel("1", square(500_000, 6_300_000), code_group="20")
+    b = parcel("1", square(500_000, 6_300_000), code_group="18")
+    gdf = quality.cast_types(to_wgs([a, b]))
+
+    with pytest.raises(DataQualityError, match="different attributes"):
         quality.dedupe_parcels(gdf, RunStats())
 
 
