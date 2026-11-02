@@ -14,7 +14,7 @@ dependencies:
   - python-dotenv
   - duckdb
   - pytest
-  - ruff
+  - ruff=0.16.9
   - ipykernel
   - pip
   - matplotlib
