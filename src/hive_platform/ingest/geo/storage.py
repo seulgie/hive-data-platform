@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import geopandas as gpd
@@ -44,7 +44,7 @@ def write_manifest(cfg: GeoIngestConfig, run_id: str, started: datetime,
         "run_id": run_id,
         "pipeline": "ingest.geo",
         "started_at_utc": started.isoformat(),
-        "finished_at_utc": datetime.now(timezone.utc).isoformat(),
+        "finished_at_utc": datetime.now(UTC).isoformat(),
         "config": config,
         "stats": asdict(stats),
         "outputs": [str(p) for p in outputs],

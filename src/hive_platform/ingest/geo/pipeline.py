@@ -18,7 +18,7 @@ import json
 import logging
 import uuid
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import requests
 
@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 def run(cfg: GeoIngestConfig, session: requests.Session | None = None) -> RunStats:
     session = session or make_session()
     run_id = uuid.uuid4().hex[:8]
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
     stats = RunStats()
 
     # S1

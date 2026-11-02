@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import geopandas as gpd
@@ -66,7 +66,7 @@ def cache_tiles(session: requests.Session, tiles_l93: gpd.GeoDataFrame,
             "tile_bounds_wgs84": list(row.geometry.bounds),
             "rpg_year": cfg.rpg_year,
             "pages": pages,
-            "fetched_at_utc": datetime.now(timezone.utc).isoformat(),
+            "fetched_at_utc": datetime.now(UTC).isoformat(),
             "features": features,
         })
         stats.tiles_fetched_now += 1

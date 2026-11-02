@@ -24,7 +24,7 @@ import json
 import logging
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import geopandas as gpd
@@ -313,7 +313,7 @@ def generate(parcels: gpd.GeoDataFrame, communes: gpd.GeoDataFrame, cfg: ApiaryC
 
 def run(cfg: ApiaryConfig) -> RegistryStats:
     run_id = uuid.uuid4().hex[:8]
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
     parcels = gpd.read_parquet(cfg.geo.parcels_out_path)
     communes = gpd.read_parquet(cfg.geo.communes_out_path)
 

@@ -26,7 +26,7 @@ import json
 import logging
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import geopandas as gpd
@@ -273,7 +273,7 @@ def write_parquet_atomic(df: pd.DataFrame, path: Path) -> None:
 
 def run(cfg: HiveConfig) -> HiveRegistryStats:
     run_id = uuid.uuid4().hex[:8]
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
     apiaries_path = cfg.apiary.out_dir / "apiaries.parquet"
     apiaries = pd.DataFrame(gpd.read_parquet(apiaries_path).drop(columns="geometry"))
 

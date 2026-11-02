@@ -72,6 +72,7 @@ def test_load_raw_tiles_fails_on_empty_cache(tmp_path):
     with pytest.raises(DataQualityError, match="no parcels"):
         raw_store.load_raw_tiles(tmp_path)
 
+
 def test_tile_cache_is_not_shared_between_tile_sizes(tmp_path):
     # tile_id N means a different box for each tile size: the cache must not mix them
     communes, parcels = fake_world()
