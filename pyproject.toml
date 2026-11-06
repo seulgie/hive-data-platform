@@ -12,6 +12,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["network: calls a real public API (skipped by default, run with -m network)"]
+addopts = "-m 'not network'"
 
 [tool.ruff]
 line-length = 100

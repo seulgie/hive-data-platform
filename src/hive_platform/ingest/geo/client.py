@@ -2,37 +2,15 @@
 from __future__ import annotations
 
 import json
-import logging
 import time
 
 import requests
-from requests.adapters import HTTPAdapter
 from shapely.geometry import mapping
-from urllib3.util.retry import Retry
+
+from hive_platform.common.http import get_json, make_session
 
 from .config import GEO_API, RPG_API, GeoIngestConfig
 
-log = logging.getLogger(__name__)
-
-
-def make_session() -> requests.Session:
-    session = requests.Session()
-    retry = Retry(
-        total=5,
-        backoff_factor=1.0,                      # waits 1, 2, 4, 8... seconds
-        status_forcelist=(429, 500, 502, 503, 504),
-        allowed_methods=("GET",),
-    )
-    session.mount("https://", HTTPAdapter(max_retries=retry))
-    return session
-
-
-def get_json(session: requests.Session, url: str, params: dict, timeout: int = 120) -> dict:
-    response = session.get(url, params=params, timeout=timeout)
-    if not response.ok:
-        log.error("HTTP %s from %s: %s", response.status_code, url, response.text[:500])
-        response.raise_for_status()
-    return response.json()
 
 
 def fetch_communes_geojson(session: requests.Session, dept_code: str) -> dict:
@@ -61,3 +39,6 @@ def fetch_rpg_tile(session: requests.Session, geom_wgs84, cfg: GeoIngestConfig) 
             return features, pages
         start += cfg.page_size
         time.sleep(cfg.request_pause_s)
+
+
+__all__ = ["fetch_communes_geojson", "fetch_rpg_tile", "get_json", "make_session"]

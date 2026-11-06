@@ -33,7 +33,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
-from hive_platform.ingest.geo.storage import write_json_atomic
+from hive_platform.common.io import write_json_atomic, write_parquet_atomic
 from hive_platform.synthetic.apiaries import ApiaryConfig
 
 log = logging.getLogger(__name__)
@@ -263,12 +263,6 @@ def generate(apiaries: pd.DataFrame, cfg: HiveConfig, run_id: str = "test"):
     )
     return hives, assign, faults, stats
 
-
-def write_parquet_atomic(df: pd.DataFrame, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".parquet.tmp")
-    df.to_parquet(tmp, index=False)
-    tmp.replace(path)
 
 
 def run(cfg: HiveConfig) -> HiveRegistryStats:

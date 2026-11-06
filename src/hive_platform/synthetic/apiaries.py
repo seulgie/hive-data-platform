@@ -31,8 +31,8 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
+from hive_platform.common.io import write_geoparquet_atomic, write_json_atomic
 from hive_platform.ingest.geo.config import CRS_L93, CRS_WGS84, GeoIngestConfig
-from hive_platform.ingest.geo.storage import write_geoparquet_atomic, write_json_atomic
 
 log = logging.getLogger(__name__)
 
