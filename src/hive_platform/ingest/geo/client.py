@@ -12,7 +12,6 @@ from hive_platform.common.http import get_json, make_session
 from .config import GEO_API, RPG_API, GeoIngestConfig
 
 
-
 def fetch_communes_geojson(session: requests.Session, dept_code: str) -> dict:
     return get_json(
         session,
