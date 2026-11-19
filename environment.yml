@@ -16,7 +16,8 @@ dependencies:
   - pytest
   - ruff=0.16.9
   - ipykernel
-  - pip
+  - pip:
+    - dbt-duckdb
   - matplotlib
   - odfpy
   

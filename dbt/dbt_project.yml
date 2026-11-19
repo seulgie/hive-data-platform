@@ -1,0 +1,25 @@
+name: hive_platform
+version: "1.0.0"
+config-version: 2
+profile: hive_platform
+
+model-paths: ["models"]
+test-paths: ["tests"]
+target-path: target
+clean-targets: [target, dbt_packages]
+
+vars:
+  # Which synthetic world to read: same values as the Python pipelines' defaults
+  dept_code: "82"
+  seed: 42
+  # Repo data folder, relative to this dbt/ folder (dbt is run from dbt/)
+  data_dir: "../data"
+
+models:
+  hive_platform:
+    staging:
+      # Tables, not views: a view would store the relative file path (../data/...) and break
+      # for any reader not started from dbt/ (the map board, Airflow). As tables, the
+      # warehouse is self-contained: consumers need the .duckdb file only.
+      +materialized: table
+      +schema: staging

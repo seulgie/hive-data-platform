@@ -1,0 +1,35 @@
+version: 2
+
+# Every source is a file written by a Python pipeline (bronze or silver).
+# dbt-duckdb reads them in place through external_location.
+sources:
+  - name: weather
+    description: "S5 - real hourly weather per apiary (Open-Meteo archive), silver table."
+    tables:
+      - name: weather_hourly
+        config:
+          external_location: "read_parquet('{{ var('data_dir') }}/lake/silver/weather_hourly/dept_code={{ var('dept_code') }}/seed={{ var('seed') }}/weather_hourly.parquet')"
+
+  - name: registry
+    description: "S3 + S4 - simulated field-ops registry (apiaries, hives, sensor history)."
+    tables:
+      - name: apiaries
+        config:
+          external_location: "read_parquet('{{ var('data_dir') }}/raw/synthetic/apiaries/dept_code={{ var('dept_code') }}/seed={{ var('seed') }}/apiaries.parquet')"
+      - name: hives
+        config:
+          external_location: "read_parquet('{{ var('data_dir') }}/raw/synthetic/hives/dept_code={{ var('dept_code') }}/seed={{ var('seed') }}/hives.parquet')"
+      - name: sensor_assignments
+        config:
+          external_location: "read_parquet('{{ var('data_dir') }}/raw/synthetic/hives/dept_code={{ var('dept_code') }}/seed={{ var('seed') }}/sensor_assignments.parquet')"
+
+  - name: iot
+    description: "S6 - simulated IoT platform export (sensor readings) and ground truth."
+    tables:
+      - name: readings
+        config:
+          external_location: "read_parquet('{{ var('data_dir') }}/raw/synthetic/telemetry/dept_code={{ var('dept_code') }}/seed={{ var('seed') }}/readings/*/*.parquet', hive_partitioning = false)"
+      - name: fault_log
+        description: "Ground truth of injected events. Evaluation only: never a mart input."
+        config:
+          external_location: "read_parquet('{{ var('data_dir') }}/raw/synthetic/telemetry/dept_code={{ var('dept_code') }}/seed={{ var('seed') }}/fault_log.parquet')"

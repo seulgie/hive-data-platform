@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: stg_telemetry__readings
+    description: "Sensor readings every 15 min, keyed by sensor_id (not hive_id)."
+    columns:
+      - name: sensor_id
+        data_tests: [not_null]
+      - name: ts_utc
+        data_tests: [not_null]
+
+  - name: stg_registry__apiaries
+    columns:
+      - name: apiary_id
+        data_tests: [unique, not_null]
+      - name: beekeeper_id
+        data_tests: [not_null]
+      - name: crop_variety_source
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [rpg_code, imputed]
+
+  - name: stg_registry__hives
+    columns:
+      - name: hive_id
+        data_tests: [unique, not_null]
+      - name: apiary_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_registry__apiaries')
+                field: apiary_id
+
+  - name: stg_registry__sensor_assignments
+    columns:
+      - name: assignment_id
+        data_tests: [unique, not_null]
+      - name: sensor_id
+        data_tests: [unique, not_null]          # a sensor is never reused
+      - name: hive_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_registry__hives')
+                field: hive_id
+      - name: reason
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [install, swap]
+
+  - name: stg_weather__hourly
+    columns:
+      - name: apiary_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_registry__apiaries')
+                field: apiary_id
+      - name: ts_utc
+        data_tests: [not_null]
+
+  - name: stg_iot__fault_log
+    description: "Ground truth. Evaluation only: no mart may select from this model."
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: fault_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [DROPOUT, SENSOR_SWAP, SWARM, DRIFT]

@@ -1,0 +1,10 @@
+# Local DuckDB warehouse. No secrets, so this file is committed.
+hive_platform:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "../data/lake/warehouse.duckdb"
+      threads: 4
+      settings:
+        TimeZone: UTC          # timestamps are UTC everywhere; local dates are derived explicitly
