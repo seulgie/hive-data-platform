@@ -14,6 +14,10 @@ vars:
   seed: 42
   # Repo data folder, relative to this dbt/ folder (dbt is run from dbt/)
   data_dir: "../data"
+  # Season, same definition as hive_platform.common.season: local calendar, [start, end)
+  local_tz: "Europe/Paris"
+  season_start_local: "2025-03-01"
+  season_end_local: "2025-11-01"
 
 models:
   hive_platform:
@@ -23,3 +27,6 @@ models:
       # warehouse is self-contained: consumers need the .duckdb file only.
       +materialized: table
       +schema: staging
+    intermediate:
+      +materialized: table
+      +schema: intermediate

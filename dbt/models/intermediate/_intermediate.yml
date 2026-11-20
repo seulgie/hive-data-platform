@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: int_readings__with_hive
+    description: "Readings with hive_id from the SCD2 sensor history, local date, 1 h weight change."
+    columns:
+      - name: hive_id
+        description: "Null would mean a reading outside every sensor assignment."
+        data_tests: [not_null]
+      - name: apiary_id
+        data_tests: [not_null]
+      - name: date_local
+        data_tests: [not_null]
+
+  - name: int_hive_days
+    description: "Spine: every hive x local day from installation to season end, with or without data."
+    columns:
+      - name: expected_readings
+        data_tests: [not_null]
+
+  - name: int_weather__daily
+    columns:
+      - name: weather_hours
+        description: "23 or 25 on DST change days."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [23, 24, 25]
+                quote: false
+
+  - name: int_hive__daily
+    description: "Hive x local day base metrics. Grain of the Field Ops board."
+    columns:
+      - name: hive_id
+        data_tests: [not_null]
+      - name: rain_mm
+        description: "Null would mean a day without weather for the apiary."
+        data_tests: [not_null]
