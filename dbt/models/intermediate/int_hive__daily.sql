@@ -32,6 +32,8 @@ select
     s.hive_id,
     s.apiary_id,
     s.date_local,
+    s.day_start_utc,
+    s.day_end_utc,
     s.expected_readings,
     coalesce(r.n_readings, 0)                               as n_readings,
     coalesce(r.n_readings, 0) / nullif(s.expected_readings, 0)

@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: fct_hive_status_daily
+    description: >
+      Field Ops board: one row per hive and local day, KPIs, status and the rules that fired.
+      Status priority: SENSOR_DOWN > STALE > SENSOR_DRIFT > ALERT > WATCH > OK.
+    columns:
+      - name: hive_id
+        data_tests: [not_null]
+      - name: status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [SENSOR_DOWN, STALE, SENSOR_DRIFT, ALERT, WATCH, OK]
+      - name: status_reasons
+        description: "Every rule that fired, not only the one that decided the status."
+
+  - name: fct_apiary_visit_priority_daily
+    description: "Which apiaries each beekeeper should visit, in which order. Apiary x local day."
+    columns:
+      - name: apiary_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_apiary')
+                field: apiary_id
+      - name: priority_score
+        data_tests: [not_null]
+
+  - name: dim_apiary
+    columns:
+      - name: apiary_id
+        data_tests: [unique, not_null]
+
+  - name: dim_hive
+    columns:
+      - name: hive_id
+        data_tests: [unique, not_null]
+      - name: current_sensor_id
+        data_tests: [unique, not_null]

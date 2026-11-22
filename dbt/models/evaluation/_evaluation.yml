@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: eval_alert_rules
+    description: >
+      Scores each status rule against the injected ground truth: recall, precision,
+      detection delay, and false alerts the beekeeper would actually see.
+      Only possible because the data is synthetic.
+    columns:
+      - name: rule
+        data_tests: [unique, not_null]

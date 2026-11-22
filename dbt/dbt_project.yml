@@ -3,6 +3,9 @@ version: "1.0.0"
 config-version: 2
 profile: hive_platform
 
+flags:
+  send_anonymous_usage_stats: false
+
 model-paths: ["models"]
 test-paths: ["tests"]
 target-path: target
@@ -19,6 +22,20 @@ vars:
   season_start_local: "2025-03-01"
   season_end_local: "2025-11-01"
 
+  # Status rule thresholds (docs/requirements/field_ops.md). v1 values, calibrated on
+  # synthetic data (scripts/check_swarm_detection.py): to validate with a beekeeper.
+  completeness_down: 0.2        # below -> SENSOR_DOWN
+  completeness_watch: 0.8       # below -> LOW_COMPLETENESS (WATCH)
+  stale_hours: 6                # no reading for longer at day end -> STALE
+  swarm_alert_kg: 1.2           # max 1 h drop above -> SWARM_SUSPECTED (ALERT)
+  swarm_watch_kg: 1.0           # max 1 h drop above -> SHARP_DROP (WATCH)
+  dry_day_loss_kg: 1.0          # 24 h loss above, on a dry day -> WEIGHT_LOSS (WATCH)
+  decline_7d_kg: 3.0            # 7 day loss above -> WEIGHT_DECLINE_7D (WATCH)
+  drift_c: 3.0                  # 7 day temp offset vs apiary median above -> SENSOR_DRIFT
+  brood_temp_min_c: 33.0
+  brood_temp_max_c: 37.0
+  brood_temp_std_max_c: 1.5
+
 models:
   hive_platform:
     staging:
@@ -30,3 +47,10 @@ models:
     intermediate:
       +materialized: table
       +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
+    evaluation:
+      # The only folder allowed to read the ground truth (stg_iot__fault_log)
+      +materialized: table
+      +schema: evaluation
