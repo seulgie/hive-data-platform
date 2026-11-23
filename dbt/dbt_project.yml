@@ -32,8 +32,7 @@ vars:
   dry_day_loss_kg: 1.0          # 24 h loss above, on a dry day -> WEIGHT_LOSS (WATCH)
   decline_7d_kg: 3.0            # 7 day loss above -> WEIGHT_DECLINE_7D (WATCH)
   drift_c: 3.0                  # 7 day temp offset vs apiary median above -> SENSOR_DRIFT
-  brood_temp_min_c: 33.0
-  brood_temp_max_c: 37.0
+  brood_cold_vs_peers_c: 1.5    # colder than the apiary median by more -> BROOD_TEMP (ALERT)
   brood_temp_std_max_c: 1.5
 
 models:

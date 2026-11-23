@@ -32,7 +32,10 @@ with_peers as (
         -- from its neighbours' median points at the sensor, not at the bees
         brood_temp_mean_7d_c
             - median(brood_temp_mean_7d_c) over (partition by apiary_id, date_local)
-                                                                        as temp_drift_7d_c
+                                                                        as temp_drift_7d_c,
+        brood_temp_mean_c
+            - median(brood_temp_mean_c) over (partition by apiary_id, date_local)
+                                                                        as brood_temp_vs_peers_c
     from rolling
 ),
 
@@ -46,8 +49,12 @@ flags as (
                                                                         as f_stale,
         coalesce(temp_drift_7d_c > {{ var('drift_c') }}, false)        as f_drift,
         coalesce(max_drop_1h_kg > {{ var('swarm_alert_kg') }}, false)  as f_swarm,
-        coalesce(brood_temp_mean_c not between {{ var('brood_temp_min_c') }}
-                                           and {{ var('brood_temp_max_c') }}
+        -- Brood loss: one colony stops regulating and gets colder than its neighbours.
+        -- Weather cools every hive of an apiary alike, so compare with the apiary median
+        -- (eval_alert_rules: an upper bound gave 216 false alerts on drifting sensors, an
+        -- absolute 33 C floor 127 on cold March days). Same principle as SENSOR_DRIFT:
+        -- alone and hotter than the neighbours = sensor, alone and colder = bees.
+        coalesce(brood_temp_vs_peers_c < -{{ var('brood_cold_vs_peers_c') }}
                  or brood_temp_std_c > {{ var('brood_temp_std_max_c') }}, false)
                                                                         as f_brood,
         coalesce(max_drop_1h_kg > {{ var('swarm_watch_kg') }}, false)  as f_sharp_drop,
@@ -80,6 +87,7 @@ select
     brood_temp_std_c,
     brood_temp_mean_7d_c,
     temp_drift_7d_c,
+    brood_temp_vs_peers_c,
     -- context
     rain_mm,
     temp_ext_mean_c,
