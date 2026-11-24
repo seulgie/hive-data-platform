@@ -1,6 +1,7 @@
 name: hive
 channels:
-  - conda-forge
+  - conda-forge:
+    - streamlit
 dependencies:
   - python=3.11
   - pandas
