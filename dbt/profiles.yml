@@ -4,7 +4,9 @@ hive_platform:
   outputs:
     dev:
       type: duckdb
-      path: "../data/lake/warehouse.duckdb"
+      # Run by hand, dbt writes the live warehouse directly. Airflow sets DBT_DUCKDB_PATH to a
+      # separate build file and publishes it only after the tests pass (hive_platform.ops.publish).
+      path: "{{ env_var('DBT_DUCKDB_PATH', '../data/lake/warehouse.duckdb') }}"
       threads: 4
       settings:
         TimeZone: UTC          # timestamps are UTC everywhere; local dates are derived explicitly
