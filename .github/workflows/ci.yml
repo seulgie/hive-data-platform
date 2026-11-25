@@ -24,7 +24,7 @@ jobs:
         run: pip install -e .
 
       - name: Lint
-        run: ruff check src tests scripts
+        run: ruff check src tests scripts dags
 
       - name: Test
         run: pytest -q
