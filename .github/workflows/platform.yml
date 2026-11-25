@@ -1,0 +1,40 @@
+# Orchestration and container checks. Separate from ci.yml: these need Airflow or Docker,
+# which the conda test environment does not have.
+name: Platform
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  dag-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Airflow with its constraints file
+        run: |
+          AIRFLOW_VERSION=3.3.2
+          pip install "apache-airflow==${AIRFLOW_VERSION}" pytest \
+            --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-3.11.txt"
+      - name: DAG imports, graph and commands
+        run: pytest -q tests/dags
+        env:
+          AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -f docker/Dockerfile -t hive-data-platform:ci .
+      - name: Pipeline virtualenv works inside the image
+        run: |
+          docker run --rm --entrypoint /opt/hive-venv/bin/python hive-data-platform:ci \
+            -c "import geopandas, rasterio, duckdb, hive_platform; print('pipeline venv ok')"
+          docker run --rm --entrypoint /opt/hive-venv/bin/dbt hive-data-platform:ci --version
+      - name: Docker Compose file is valid
+        run: docker compose config --quiet

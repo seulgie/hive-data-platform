@@ -1,0 +1,23 @@
+# Pipeline dependencies for the Docker image. Airflow runs the pipeline from a separate
+# virtualenv with these packages, so they never conflict with Airflow's own pins.
+# Same packages as environment.yml, as pip wheels instead of conda-forge: the geo wheels
+# (pyogrio, rasterio, pyproj) ship their own GDAL/PROJ. Pinned so every build is identical.
+# Resolved and tested on Python 3.11. Keep in step with environment.yml.
+pandas==3.1.1
+pyarrow==26.0.1
+numpy==2.4.6
+geopandas==1.2.0
+shapely==2.2.0
+pyogrio==0.13.0
+pyproj==3.7.2
+rasterio==1.4.4
+rioxarray==0.19.0
+pydantic==2.14.4
+requests==2.34.2
+python-dotenv==1.2.4
+duckdb==2.0.0
+dbt-core==1.12.7
+dbt-duckdb==1.11.1
+streamlit==1.67.0
+pydeck==0.9.3
+altair==6.3.0

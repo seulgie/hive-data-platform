@@ -1,0 +1,13 @@
+# Keep the build context small: the image needs code, not data or local state.
+.git
+data
+notebooks
+**/__pycache__
+**/.pytest_cache
+.ruff_cache
+dbt/target
+dbt/logs
+dbt/dbt_packages
+logs
+.env
+*.duckdb

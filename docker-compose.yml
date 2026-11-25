@@ -1,0 +1,127 @@
+# Local platform: Airflow (LocalExecutor + Postgres) runs the season pipeline, the board
+# serves the published warehouse. Everything works on the repo's own data/ folder.
+#
+#   docker compose up -d --build     ->  Airflow UI http://localhost:8080
+#                                        Board      http://localhost:8501
+#   docker compose down              (add -v to also drop Airflow's metadata DB and logs)
+#
+# Local development only: no login (every user is admin) and a fixed JWT secret.
+
+# Every service runs the same image. Only airflow-init builds it; `up --build` builds before it
+# starts anything, and the other services then find it locally instead of pulling.
+x-hive-image: &hive-image
+  image: hive-data-platform:local
+  pull_policy: never
+
+x-airflow-common: &airflow-common
+  <<: *hive-image
+  environment: &airflow-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor           # tasks run inside the scheduler container
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"  # schedule=None: unpaused never auto-runs
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET:-local-dev-only}  # same for every component
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
+    AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: "30"   # pick up new DAG files within 30 s
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - .:/opt/hive                                    # repo: live code, dbt project, data/
+    - airflow-logs:/opt/airflow/logs
+  # On Linux, put AIRFLOW_UID=<output of `id -u`> in .env so files in data/ stay yours.
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-depends
+    postgres:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  airflow-init:
+    <<: *airflow-common
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: db migrate                              # create / upgrade the metadata DB, then exit
+
+  airflow-apiserver:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-depends
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-depends
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      <<: *airflow-depends
+      airflow-init:
+        condition: service_completed_successfully
+
+  board:
+    <<: *hive-image
+    entrypoint: ["/opt/hive-venv/bin/streamlit"]
+    command: ["run", "src/hive_platform/board/app.py",
+              "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true"]
+    working_dir: /opt/hive
+    volumes:
+      - .:/opt/hive
+    user: "${AIRFLOW_UID:-50000}:0"
+    ports:
+      - "8501:8501"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  postgres-db:
+  airflow-logs:
