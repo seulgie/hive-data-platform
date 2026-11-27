@@ -1,7 +1,6 @@
 name: hive
 channels:
-  - conda-forge:
-    - streamlit
+  - conda-forge
 dependencies:
   - python=3.11
   - pandas
@@ -14,12 +13,12 @@ dependencies:
   - requests
   - python-dotenv
   - duckdb
+  - streamlit
   - pytest
   - ruff=0.16.9
   - ipykernel
-  - pip:
-    - dbt-duckdb
   - matplotlib
   - odfpy
-  
-  
+  - pip
+  - pip:
+    - dbt-duckdb
